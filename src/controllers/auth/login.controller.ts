@@ -17,7 +17,10 @@ export const login = async (
   try {
     const { username, password } = req.body;
 
-    const user = await UserModel.findOne({ username }, { password: 1 });
+    const user = await UserModel.findOne(
+      { username },
+      { username: 1, password: 1 }
+    ).lean();
 
     const isPasswordValid = await User.comparePassword(
       password,
@@ -28,9 +31,16 @@ export const login = async (
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
+    const payload = {
+      username: user.username,
+      id: user._id,
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET as string, {
       expiresIn: 3600,
     });
+
+    logger.info(`${username} logged`);
 
     return res.status(200).json({ token });
   } catch (error) {

@@ -7,5 +7,6 @@ export type SignupRequest = {
 };
 
 export type SignupResponse = {
-  message: string;
+  token?: string;
+  message?: string;
 };

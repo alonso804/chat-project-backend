@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 
 import logger from 'utils/logger';
 
@@ -16,7 +17,7 @@ export const signup = async (
   try {
     const { username, password, phoneNumber, publicKey, privateKey } = req.body;
 
-    await UserModel.create({
+    const user = await UserModel.create({
       username,
       password: await User.encryptPassword(password),
       phoneNumber,
@@ -24,8 +25,17 @@ export const signup = async (
       privateKey,
     });
 
-    logger.info(`[POST] /auth/signup: ${username} created`);
-    return res.status(200).json({ message: 'User created successfully' });
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: 3600,
+      }
+    );
+
+    logger.info(`${username} created`);
+
+    return res.status(200).json({ token });
   } catch (err) {
     logger.error(`[POST] /auth/signup: ${err}`);
     return res.status(500).json({ message: err as string });

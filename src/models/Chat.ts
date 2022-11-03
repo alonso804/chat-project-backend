@@ -13,9 +13,6 @@ class Message {
   content!: string;
 
   @prop({ required: true })
-  seen!: boolean;
-
-  @prop({ required: true })
   sender!: Ref<User>;
 }
 
