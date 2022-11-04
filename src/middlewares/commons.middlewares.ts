@@ -37,8 +37,9 @@ export const verifyToken = async (
 
     return res.status(401).json({ error: 'Token not found' });
   }
-
-  const decoded = jwt.verify(
+  
+  try {
+    const decoded = jwt.verify(
     header.split(' ')[1],
     process.env.JWT_SECRET as string
   );
@@ -52,4 +53,9 @@ export const verifyToken = async (
   logger.info('Token verified');
 
   return next();
+  } catch (error) {
+    logger.error('Invalid token');
+
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 };

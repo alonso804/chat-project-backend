@@ -44,10 +44,8 @@ export const getChat = async (req: Request, res: Response) => {
 
     if (!chat) {
       return res.status(200).json({
-        chat: {
-          receiver: receiver.username,
-          messages: [],
-        },
+        receiver: receiver.username,
+        messages: [],
       });
     }
 
@@ -90,7 +88,11 @@ export const getChat = async (req: Request, res: Response) => {
       },
     ]);
 
-    return res.status(200).json({ chat: sortedChat[0] });
+    return res.status(200).json({
+      id: sortedChat[0]._id,
+      messages: sortedChat[0].messages,
+      receiver: sortedChat[0].receiver,
+    });
   } catch (error) {
     logger.error(error);
     return res.status(500).json({ message: error });
