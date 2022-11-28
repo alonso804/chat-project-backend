@@ -21,8 +21,13 @@ export const sendMessage = async (req: Request, res: Response) => {
     await ChatModel.findByIdAndUpdate(chatId, {
       $push: {
         messages: {
-          sender: decoded.username,
-          content,
+          $each: [
+            {
+              sender: decoded.username,
+              content,
+            },
+          ],
+          $position: 0,
         },
       },
     });

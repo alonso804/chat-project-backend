@@ -19,9 +19,9 @@ export const getUserInfo = async (
     ) as JwtPayload;
 
     return res.status(200).json({ id, username });
-  } catch (error) {
+  } catch (error: any) {
     logger.error(error);
 
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: error.message as string });
   }
 };

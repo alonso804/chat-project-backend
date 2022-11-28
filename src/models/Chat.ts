@@ -16,6 +16,11 @@ class Message {
   sender!: Ref<User>;
 }
 
+@modelOptions({
+  schemaOptions: {
+    timestamps: true,
+  },
+})
 export class Chat {
   @prop({ ref: () => User, default: () => [] })
   users!: Ref<User>[];

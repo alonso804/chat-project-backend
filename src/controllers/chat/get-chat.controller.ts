@@ -59,11 +59,6 @@ export const getChat = async (req: Request, res: Response) => {
         $unwind: '$messages',
       },
       {
-        $sort: {
-          'messages.createdAt': -1,
-        },
-      },
-      {
         $group: {
           _id: '$_id',
           messages: {
@@ -73,7 +68,7 @@ export const getChat = async (req: Request, res: Response) => {
               isSender: {
                 $cond: {
                   if: {
-                    $eq: ['$messages.sender', decoded.username],
+                    $eq: ['$messages.sender', decoded.id],
                   },
                   then: true,
                   else: false,
