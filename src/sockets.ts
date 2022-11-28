@@ -4,14 +4,22 @@ import { Server as WebSocketServer } from 'socket.io';
 import logger from 'utils/logger';
 import { Types } from 'mongoose';
 import { Chat } from 'models/Chat';
+import { User } from 'models/User';
 
 type SendMessageRequest = {
   chatId: string;
   message: string;
+  receiver: {
+    _id: string;
+    username: string;
+  };
 };
 
 type CreateChatRequest = {
-  receiverId: string;
+  receiver: {
+    _id: string;
+    username: string;
+  };
   message: string;
 };
 
@@ -19,10 +27,10 @@ const users = new Map();
 
 export default (io: WebSocketServer) => {
   io.use(async (socket, next) => {
-    const { userId } = socket.handshake.auth;
+    const { user } = socket.handshake.auth;
     const { token } = socket.handshake.query;
 
-    if (!userId || !(await UserModel.findById(userId).lean())) {
+    if (!user._id || !(await UserModel.findById(user._id).lean())) {
       return next(new Error('Unauthorized'));
     }
 
@@ -32,6 +40,7 @@ export default (io: WebSocketServer) => {
       }
       jwt.verify(token as string, process.env.JWT_SECRET as string);
       return next();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       logger.error(`Error while verifying token: ${error.message}`);
 
@@ -40,38 +49,138 @@ export default (io: WebSocketServer) => {
   });
 
   io.on('connection', (socket) => {
-    const { userId } = socket.handshake.auth;
+    const { user } = socket.handshake.auth;
 
-    users.set(userId, socket.id);
+    users.set(user._id, socket.id);
 
-    socket.on('sendMessage', ({ chatId, message }: SendMessageRequest) => {
-      logger.info(chatId);
-      logger.info(message);
-    });
+    socket.on(
+      'sendMessage',
+      async ({ chatId, message, receiver }: SendMessageRequest) => {
+        logger.info(`Sending message to chat ${chatId}`);
+
+        const chat = (await ChatModel.findByIdAndUpdate(
+          chatId,
+          {
+            $push: {
+              messages: {
+                $each: [
+                  {
+                    sender: user._id,
+                    content: message,
+                  },
+                ],
+                $position: 0,
+              },
+            },
+          },
+          { new: true, lean: true }
+        )) as unknown as Chat & { updatedAt: Date };
+
+        const lastMessage = {
+          createdAt: chat.updatedAt,
+          content: message,
+        };
+
+        if (users.has(receiver._id)) {
+          io.to(users.get(receiver._id)).emit('sendMessage', {
+            chatId,
+            message: { ...lastMessage, isSender: false },
+          });
+
+          const receiverUser = await UserModel.findById(receiver._id, {
+            _id: 0,
+            chats: 1,
+          }).populate({
+            path: 'chats',
+            select: { users: 1, messages: 1 },
+            options: { sort: { updatedAt: -1 } },
+            populate: {
+              path: 'users',
+              select: { _id: 1, username: 1 },
+            },
+          });
+
+          io.to(users.get(receiver._id)).emit('updateAllChats', {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            messages: receiverUser?.chats.map((userChat: any) => {
+              const chatReceiver = (
+                userChat.users[0]._id.toString() === receiver._id
+                  ? userChat.users[1]
+                  : userChat.users[0]
+              ) as User & { _id: Types.ObjectId };
+
+              return {
+                receiver: {
+                  _id: chatReceiver._id.toString(),
+                  username: chatReceiver.username,
+                },
+                message: userChat?.messages[0].content,
+                date: userChat?.messages[0].updatedAt,
+              };
+            }),
+          });
+        }
+
+        io.to(users.get(user._id)).emit('sendMessage', {
+          chatId,
+          message: { ...lastMessage, isSender: true },
+        });
+
+        const senderUser = await UserModel.findById(user._id, {
+          _id: 0,
+          chats: 1,
+        }).populate({
+          path: 'chats',
+          select: { users: 1, messages: 1 },
+          options: { sort: { updatedAt: -1 } },
+          populate: {
+            path: 'users',
+            select: { _id: 1, username: 1 },
+          },
+        });
+
+        io.to(users.get(user._id)).emit('updateAllChats', {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          messages: senderUser?.chats.map((userChat: any) => {
+            const chatReceiver = (
+              userChat.users[0]._id.toString() === user._id
+                ? userChat.users[1]
+                : userChat.users[0]
+            ) as User & { _id: Types.ObjectId };
+            return {
+              receiver: {
+                _id: chatReceiver._id.toString(),
+                username: chatReceiver.username,
+              },
+              message: userChat?.messages[0].content,
+              date: userChat?.messages[0].updatedAt,
+            };
+          }),
+        });
+      }
+    );
 
     socket.on(
       'createChat',
-      async ({ receiverId, message }: CreateChatRequest) => {
+      async ({ receiver, message }: CreateChatRequest) => {
+        logger.info(`Creating chat between ${user._id} and ${receiver._id}`);
+
         const chatId = new Types.ObjectId();
-        logger.info(`userId: ${userId}`);
-        logger.info(`receiverId: ${receiverId}`);
-        logger.info(`message: ${message}`);
-        logger.info(`chatId: ${chatId}`);
 
         try {
           const [chat] = await Promise.all([
             (await ChatModel.create({
               _id: chatId,
-              users: [userId, receiverId],
+              users: [user._id, receiver._id],
               messages: [
                 {
-                  sender: userId,
+                  sender: user._id,
                   content: message,
                 },
               ],
             })) as unknown as Chat & { updatedAt: Date },
 
-            await UserModel.findByIdAndUpdate(userId, {
+            await UserModel.findByIdAndUpdate(user._id, {
               $push: {
                 chats: {
                   _id: chatId,
@@ -79,7 +188,7 @@ export default (io: WebSocketServer) => {
               },
             }),
 
-            await UserModel.findByIdAndUpdate(receiverId, {
+            await UserModel.findByIdAndUpdate(receiver._id, {
               $push: {
                 chats: {
                   _id: chatId,
@@ -93,17 +202,32 @@ export default (io: WebSocketServer) => {
             content: message,
           };
 
-          if (users.has(receiverId)) {
-            io.to(users.get(receiverId)).emit('newChat', {
+          if (users.has(receiver._id)) {
+            io.to(users.get(receiver._id)).emit('newChat', {
               chatId,
               message: { ...lastMessage, isSender: false },
             });
 
-            io.to(users.get(userId)).emit('newChat', {
-              chatId,
-              message: { ...lastMessage, isSender: true },
+            io.to(users.get(receiver._id)).emit('newLastMessage', {
+              receiver: {
+                _id: user._id,
+                username: user.username,
+              },
+              message,
+              date: chat.updatedAt,
             });
           }
+
+          io.to(users.get(user._id)).emit('newChat', {
+            chatId,
+            message: { ...lastMessage, isSender: true },
+          });
+
+          io.to(users.get(user._id)).emit('newLastMessage', {
+            receiver,
+            message,
+            date: chat.updatedAt,
+          });
         } catch (error) {
           logger.error(error);
         }
@@ -111,8 +235,8 @@ export default (io: WebSocketServer) => {
     );
 
     socket.on('disconnect', () => {
-      users.delete(userId);
-      logger.info(`${userId} disconnected`);
+      users.delete(user._id);
+      logger.info(`${user._id} disconnected`);
     });
   });
 };

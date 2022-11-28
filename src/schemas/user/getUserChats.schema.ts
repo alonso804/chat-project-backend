@@ -1,5 +1,8 @@
 export type GetUserChatsResponse = {
-  username: string;
+  receiver: {
+    _id: string;
+    username: string;
+  };
   message: string;
   date: Date;
 }[] | { message: string };

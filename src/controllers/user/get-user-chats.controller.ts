@@ -23,6 +23,7 @@ export const getUserChats = async (
     const user = await UserModel.findById(id, { _id: 0, chats: 1 }).populate({
       path: 'chats',
       select: { users: 1, messages: 1 },
+      options: { sort: { updatedAt: -1 } },
       populate: {
         path: 'users',
         select: { _id: 1, username: 1 },
@@ -39,13 +40,17 @@ export const getUserChats = async (
         chat.users[0]._id.toString() === id ? chat.users[1] : chat.users[0];
 
       return {
-        username: reciever.username,
+        receiver: {
+          _id: reciever._id,
+          username: reciever.username,
+        },
         message: chat.messages[0].content,
         date: chat.messages[0].updatedAt,
       };
     });
 
     return res.status(200).json(chats);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     logger.error(error);
 
