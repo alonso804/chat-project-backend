@@ -11,7 +11,7 @@ export const SignupValidator = Joi.object<SignupRequest>({
       )
     )
     .required(),
-  phoneNumber: Joi.string().required(),
   publicKey: Joi.string().required(),
   privateKey: Joi.string().required(),
+  googleAuthSecret: Joi.string().required(),
 });

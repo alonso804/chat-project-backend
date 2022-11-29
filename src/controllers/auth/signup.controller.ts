@@ -15,14 +15,14 @@ export const signup = async (
   logger.info('[POST] /auth/signup');
 
   try {
-    const { username, password, phoneNumber, publicKey, privateKey } = req.body;
+    const { username, password, publicKey, privateKey, googleAuthSecret } = req.body;
 
     const user = await UserModel.create({
       username,
       password: await User.encryptPassword(password),
-      phoneNumber,
       publicKey,
       privateKey,
+      googleAuthSecret,
     });
 
     const token = jwt.sign(

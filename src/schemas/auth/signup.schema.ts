@@ -1,9 +1,9 @@
 export type SignupRequest = {
   username: string;
   password: string;
-  phoneNumber: string;
   publicKey: string;
   privateKey: string;
+  googleAuthSecret: string;
 };
 
 export type SignupResponse = {

@@ -15,13 +15,13 @@ export class User {
   password!: string;
 
   @prop({ required: true })
-  phoneNumber!: string;
-
-  @prop({ required: true })
   publicKey!: string;
 
   @prop({ required: true })
   privateKey!: string;
+
+  @prop({ required: true })
+  googleAuthSecret!: string;
 
   @prop({ ref: () => Chat, default: () => [] })
   chats!: Ref<Chat>[];
