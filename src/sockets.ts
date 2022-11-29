@@ -19,6 +19,7 @@ type CreateChatRequest = {
   receiver: {
     _id: string;
     username: string;
+    publicKey: string;
   };
   message: string;
 };
