@@ -5,5 +5,6 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   token?: string;
+  googleAuthSecret?: string;
   message?: string;
 };

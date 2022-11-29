@@ -19,7 +19,7 @@ export const login = async (
 
     const user = await UserModel.findOne(
       { username },
-      { username: 1, password: 1 }
+      { username: 1, password: 1, googleAuthSecret: 1 }
     ).lean();
 
     const isPasswordValid = await User.comparePassword(
@@ -28,7 +28,9 @@ export const login = async (
     );
 
     if (!user || !isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid username or password' });
+      logger.error('Invalid username or password');
+
+      return res.status(200).json({ message: 'Invalid username or password' });
     }
 
     const payload = {
@@ -42,7 +44,9 @@ export const login = async (
 
     logger.info(`${username} logged`);
 
-    return res.status(200).json({ token });
+    return res
+      .status(200)
+      .json({ token, googleAuthSecret: user.googleAuthSecret });
   } catch (error) {
     logger.error(error);
 

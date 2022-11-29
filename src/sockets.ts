@@ -214,6 +214,7 @@ export default (io: WebSocketServer) => {
               receiver: {
                 _id: user._id,
                 username: user.username,
+                publicKey: user.publicKey,
               },
               message,
               date: chat.updatedAt,
