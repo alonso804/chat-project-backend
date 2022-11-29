@@ -26,7 +26,7 @@ export const getUserChats = async (
       options: { sort: { updatedAt: -1 } },
       populate: {
         path: 'users',
-        select: { _id: 1, username: 1 },
+        select: { _id: 1, username: 1, publicKey: 1 },
       },
     });
 
@@ -43,6 +43,7 @@ export const getUserChats = async (
         receiver: {
           _id: reciever._id,
           username: reciever.username,
+          publicKey: reciever.publicKey,
         },
         message: chat.messages[0].content,
         date: chat.messages[0].updatedAt,

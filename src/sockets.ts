@@ -96,7 +96,7 @@ export default (io: WebSocketServer) => {
             options: { sort: { updatedAt: -1 } },
             populate: {
               path: 'users',
-              select: { _id: 1, username: 1 },
+              select: { _id: 1, username: 1, publicKey: 1 },
             },
           });
 
@@ -113,6 +113,7 @@ export default (io: WebSocketServer) => {
                 receiver: {
                   _id: chatReceiver._id.toString(),
                   username: chatReceiver.username,
+                  publicKey: chatReceiver.publicKey,
                 },
                 message: userChat?.messages[0].content,
                 date: userChat?.messages[0].updatedAt,
@@ -135,7 +136,7 @@ export default (io: WebSocketServer) => {
           options: { sort: { updatedAt: -1 } },
           populate: {
             path: 'users',
-            select: { _id: 1, username: 1 },
+            select: { _id: 1, username: 1, publicKey: 1 },
           },
         });
 
@@ -151,6 +152,7 @@ export default (io: WebSocketServer) => {
               receiver: {
                 _id: chatReceiver._id.toString(),
                 username: chatReceiver.username,
+                publicKey: chatReceiver.publicKey,
               },
               message: userChat?.messages[0].content,
               date: userChat?.messages[0].updatedAt,

@@ -28,7 +28,7 @@ export const getAllUsers = async (
             username: { $regex: term as string, $options: 'i' },
           }),
       },
-      { username: 1 }
+      { username: 1, publicKey: 1 }
     )
       .limit(5)
       .lean();

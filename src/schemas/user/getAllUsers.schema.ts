@@ -1,4 +1,5 @@
 export type GetAllUsersResponse = {
-  id: string;
+  _id: string;
   username: string;
+  publicKey: string;
 }[] | { message: string };
