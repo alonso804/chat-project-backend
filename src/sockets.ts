@@ -51,6 +51,8 @@ export default (io: WebSocketServer) => {
   io.on('connection', (socket) => {
     const { user } = socket.handshake.auth;
 
+    logger.info(`${user.username} connected with id ${socket.id}`);
+
     users.set(user._id, socket.id);
 
     socket.on(
@@ -122,7 +124,7 @@ export default (io: WebSocketServer) => {
           });
         }
 
-        io.to(users.get(user._id)).emit('sendMessage', {
+        io.to(socket.id).emit('sendMessage', {
           chatId,
           message: { ...lastMessage, isSender: true },
         });
@@ -140,7 +142,7 @@ export default (io: WebSocketServer) => {
           },
         });
 
-        io.to(users.get(user._id)).emit('updateAllChats', {
+        io.to(socket.id).emit('updateAllChats', {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           messages: senderUser?.chats.map((userChat: any) => {
             const chatReceiver = (
